@@ -122,7 +122,17 @@ public interface WxBaseService {
 
     /**
      * 获取登录列表
+     *
      * @return
      */
     JSONObject getLoggedAccountList() throws UnsupportedEncodingException;
+
+    /**
+     * 踢除群承运
+     * @param robotWxId 机器人id
+     * @param groupId   群聊id
+     * @param memberWxId 个人微信id
+     */
+    void removeGroupMember(String robotWxId, String groupId, String memberWxId);
+
 }

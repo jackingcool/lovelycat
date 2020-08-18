@@ -7,6 +7,7 @@ import cn.xsshome.taip.nlp.TAipNlp;
 import com.alibaba.fastjson.JSON;
 import com.alibaba.fastjson.JSONArray;
 import com.alibaba.fastjson.JSONObject;
+import com.lovelycat.wx.base.entity.WxMessage;
 import com.lovelycat.wx.base.service.WxBaseService;
 import com.lovelycat.wx.constants.MessageContentConstants;
 import com.lovelycat.wx.constants.SymbolicConstants;
@@ -23,9 +24,7 @@ import org.springframework.stereotype.Component;
 import java.io.File;
 import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
-import java.util.HashMap;
-import java.util.Map;
-import java.util.UUID;
+import java.util.*;
 
 
 @Component
@@ -57,6 +56,50 @@ public class ScheduledTasks {
     private String smartChatAppId;
     @Value("${wx.tencent.smart.chat.appKey}")
     private String smartChatAppKey;
+    @Value("${wx.api.chickenSoup.url}")
+    private String chickenSoupUrl;
+    @Value("${wx.use.random.music}")
+    private String randomMusicWxIds;
+
+    @Scheduled(cron = "0 0 0 * * ?")
+    @Async
+    public void netEaseCloud() {
+        WxBaseService wxBaseService = (WxBaseService) ApplicationContextUtil.getBean("WxBaseService");
+        StringBuffer sb = new StringBuffer();
+        String path = filePath + "IMG_6013.JPG";
+
+        String text = HttpUtil.get(chickenSoupUrl);
+        List<Map<String, String>> musicList = new ArrayList<>();
+        sb.append("网抑云今日时间语录：" + text + " 今日热歌TOP5：");
+        for (int i = 0; i < 5; i++) {
+            JSONObject musicObject = JSONObject.parseObject(HttpUtil.get("https://api.uomg.com/api/rand.music?sort=热歌榜&format=json")).getJSONObject("data");
+            Map<String, String> map = new HashMap<>();
+            map.put("title", musicObject.getString("name"));
+            map.put("text", musicObject.getString("artistsname"));
+            map.put("targetUrl", musicObject.getString("url"));
+            map.put("picUrl", musicObject.getString("picurl"));
+            musicList.add(map);
+        }
+        String[] randomMusicWxIdArr = randomMusicWxIds.split(",");
+        for (int i = 0; i < randomMusicWxIdArr.length; i++) {
+            wxBaseService.sendImageMsg(robotWxId, randomMusicWxIdArr[i], path, 0);
+            try {
+                Thread.sleep(3000);
+                wxBaseService.sendTextMsg(robotWxId, randomMusicWxIdArr[i], sb.toString(), 3000);
+                Thread.sleep(3000);
+                for (int j = 0; j < musicList.size(); j++) {
+                    Map<String, String> map = musicList.get(j);
+                    wxBaseService.sendLinkMsg(robotWxId, randomMusicWxIdArr[i], map.get("title"), map.get("text"), map.get("targetUrl"), map.get("picUrl"));
+                }
+            } catch (InterruptedException e) {
+                e.printStackTrace();
+            }
+
+
+        }
+
+
+    }
 
 
     @Scheduled(cron = "0 0 6 * * ?")
@@ -109,6 +152,7 @@ public class ScheduledTasks {
             }
             HttpUtil.download(fileUrl, fos, true);
             WxBaseService wxBaseService = (WxBaseService) ApplicationContextUtil.getBean("WxBaseService");
+
             if (null != wxIds && "" != wxIds) {
                 if (wxIds.indexOf(SymbolicConstants.ENGLISH_COMMA) != -1) {
                     String[] wxIdArr = wxIds.split(SymbolicConstants.ENGLISH_COMMA);

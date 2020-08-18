@@ -77,7 +77,7 @@ public class WxBaseServiceImpl implements WxBaseService {
     public Object sendMusicMsg(String robotWxId, String toWxId, String name) {
         Map<String, Object> map = null;
         map = Results.of().put("type", 108).put("robot_wxid", robotWxId).put("to_wxid", toWxId).put("msg", name).toMap();
-        return sendSGHttp(url, map, "", 3000);
+        return sendSGHttp(url, map, "", 1000);
     }
 
     @Override
@@ -132,6 +132,13 @@ public class WxBaseServiceImpl implements WxBaseService {
         sb.deleteCharAt(sb.lastIndexOf("}") - 1);
         System.out.println(sb.toString());
         return JSONObject.parseObject(sb.toString());
+    }
+
+    @Override
+    public void removeGroupMember(String robotWxId, String groupId, String memberWxId) {
+        Map<String, Object> map = null;
+        map = Results.of().put("type", 306).put("robot_wxid", robotWxId).put("to_wxid", groupId).put("member_wxid", memberWxId).toMap();
+        sendSGHttp(url, map, "", 0);
     }
 
     /**

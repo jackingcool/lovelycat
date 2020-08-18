@@ -16,11 +16,11 @@ public interface WxMessageService {
     /**
      * 只对配置文件中设置的wxId使用机器人
      *
-     * @param wxMessage 接收的消息内容
-     * @param  filterList 可使用的微信好友和群聊信息集合
+     * @param wxMessage  接收的消息内容
+     * @param filterList 可使用的微信好友和群聊信息集合
      * @return true 允许使用机器人机器人回复
      */
-    boolean filterMessages(WxMessage wxMessage,List<Object> filterList);
+    boolean filterMessages(WxMessage wxMessage, List<Object> filterList);
 
     /**
      * 艾特后的回复
@@ -130,12 +130,11 @@ public interface WxMessageService {
     /**
      * 修改功能权限
      *
-     * @param chatType  100 私聊 200 群聊
      * @param wxMessage 消息信息
      * @param featureId 功能Id
      * @param action    动作 开启or关闭
      */
-    void updateFeature(int chatType, WxMessage wxMessage, String featureId, String featureName) throws UnsupportedEncodingException;
+    void updateFeature( WxMessage wxMessage, String featureId, String featureKeyWord) throws UnsupportedEncodingException;
 
     /**
      * 查询好友功能列表
@@ -155,8 +154,40 @@ public interface WxMessageService {
 
     /**
      * 查询群聊功能集合
+     *
      * @param wxMessage
      * @return
      */
     List<WxGroupFeature> findGroupFeatureList(WxMessage wxMessage);
+
+    /**
+     * 查询当前正在使用的机器人
+     *
+     * @param wxMessage
+     * @return
+     */
+    String findIsUseRobot(WxMessage wxMessage);
+
+    /**
+     * 网抑云
+     *
+     * @param wxMessage
+     */
+    void netEaseCloud(WxMessage wxMessage);
+
+    ;
+
+    /**
+     * 功能列表
+     *
+     * @param wxMessage
+     */
+    void sendFeatureList(WxMessage wxMessage);
+
+    /**
+     * 管理员条件下直接删除广告
+     *
+     * @param wxMessage
+     */
+    void removeAdvert(WxMessage wxMessage);
 }

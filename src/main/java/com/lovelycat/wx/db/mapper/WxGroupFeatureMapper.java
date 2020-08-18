@@ -2,10 +2,13 @@ package com.lovelycat.wx.db.mapper;
 
 import com.lovelycat.wx.db.entity.WxGroupFeature;
 import com.baomidou.mybatisplus.core.mapper.BaseMapper;
+import com.lovelycat.wx.db.entity.WxGroupFeatureDo;
+
+import java.util.List;
 
 /**
  * <p>
- *  Mapper 接口
+ * Mapper 接口
  * </p>
  *
  * @author mgg
@@ -13,4 +16,12 @@ import com.baomidou.mybatisplus.core.mapper.BaseMapper;
  */
 public interface WxGroupFeatureMapper extends BaseMapper<WxGroupFeature> {
 
+    /**
+     * 查询群功能信息(带名称)
+     *
+     * @param fromWxId
+     * @param robotWxId
+     * @return
+     */
+    List<WxGroupFeatureDo> selectGroupFeatureList(String fromWxId, String robotWxId);
 }

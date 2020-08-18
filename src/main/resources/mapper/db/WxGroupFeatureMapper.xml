@@ -1,5 +1,16 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
 <mapper namespace="com.lovelycat.wx.db.mapper.WxGroupFeatureMapper">
+    <resultMap id="baseResultMap" type="com.lovelycat.wx.db.entity.WxGroupFeatureDo">
+        <result column="id" property="id"></result>
+        <result column="featureKeyword" property="feature_keyword"></result>
+        <result column="wxId" property="wx_id"></result>
+        <result column="useFlag" property="use_flag"></result>
+    </resultMap>
 
+    <select id="selectGroupFeatureList" resultMap="baseResultMap">
+        SELECT a.feature_keyword,b.group_id,b.use_flag from wx_group_feature a
+        INNER JOIN wx_group_feature_group b on a."id" = b.feature_id
+        WHERE b.group_id = #{fromWxId} and b.robot_id = #{robotWxId}
+    </select>
 </mapper>

@@ -1,6 +1,7 @@
 package com.lovelycat.wx.message.controller;
 
 import cn.hutool.core.collection.CollectionUtil;
+import cn.hutool.core.util.StrUtil;
 import cn.hutool.log.Log;
 import cn.hutool.log.LogFactory;
 import com.lovelycat.wx.base.entity.WxMessage;
@@ -32,7 +33,6 @@ public class WxMessageController {
 
     @Autowired
     WxMessageService wxMessageService;
-
     private static final Log log = LogFactory.get();
 
     /**
@@ -77,10 +77,22 @@ public class WxMessageController {
             e.printStackTrace();
         }
 
-        //过滤信息 use_flag为true的w才可以使用功能
+        //过滤信息 use_flag为true的好友和群聊才可以使用功能
+        if (StrUtil.isEmpty(robotWxId)) {
+            robotWxId = wxMessageService.findIsUseRobot(wxMessage);
+        }
         if (CollectionUtil.isEmpty(filterList)) {
             filterList = wxMessageService.findFilterList(robotWxId);
         }
+
+        if (CollectionUtil.isEmpty(wxFriendFeatureList)) {
+            wxFriendFeatureList = wxMessageService.findFriendFeatureList(wxMessage);
+        }
+
+        if (CollectionUtil.isEmpty(wxGroupFeatureList)) {
+            wxGroupFeatureList = wxMessageService.findGroupFeatureList(wxMessage);
+        }
+
         if (wxMessageService.filterMessages(wxMessage, filterList)) {
             switch (wxMessage.getType()) {
                 //私聊消息
@@ -90,27 +102,33 @@ public class WxMessageController {
                         //修改好友功能权限  输入 开启XX or 关闭XX
                         wxFriendFeatureList.forEach(wxFriendFeature -> {
                             //开启和关闭功能
-                            if (wxMessage.getMsg().equals(MessageContentConstants.START_FEATURE + wxFriendFeature.getFeatureName()) && robotWxId.equals(wxMessage.getRobotWxId())
-                                    || wxMessage.getMsg().equals(MessageContentConstants.END_FEATURE + wxFriendFeature.getFeatureName()) && robotWxId.equals(wxMessage.getRobotWxId())) {
+                            if (wxMessage.getMsg().equals(MessageContentConstants.START_FEATURE + wxFriendFeature.getFeatureKeyword()) && robotWxId.equals(wxMessage.getRobotWxId())
+                                    || wxMessage.getMsg().equals(MessageContentConstants.END_FEATURE + wxFriendFeature.getFeatureKeyword()) && robotWxId.equals(wxMessage.getRobotWxId())) {
                                 try {
-                                    wxMessageService.updateFeature(MessageTypeConstants.GROUP_CHAT_TYPE, wxMessage, wxFriendFeature.getId(), wxFriendFeature.getFeatureName());
+                                    wxMessageService.updateFeature(wxMessage, wxFriendFeature.getId(), wxFriendFeature.getFeatureKeyword());
+                                    wxFriendFeatureList = wxMessageService.findFriendFeatureList(wxMessage);
                                 } catch (UnsupportedEncodingException e) {
                                     e.printStackTrace();
                                 }
                                 return;
                             }
+
                         });
                     }
+
+                    //好友输入功能可查看功能列表
+                    wxMessageService.sendFeatureList(wxMessage);
                     break;
                 //群聊消息
                 case MessageTypeConstants.GROUP_CHAT_TYPE:
                     //修改群聊权限 群主列表第一人修改
                     if (CollectionUtil.isNotEmpty(wxGroupFeatureList)) {
                         wxGroupFeatureList.forEach(wxGroupFeature -> {
-                            if (wxMessage.getMsg().equals(MessageContentConstants.START_FEATURE + wxGroupFeature.getFeatureName()) && robotWxId.equals(wxMessage.getRobotWxId())
-                                    || wxMessage.getMsg().equals(MessageContentConstants.END_FEATURE + wxGroupFeature.getFeatureName()) && robotWxId.equals(wxMessage.getRobotWxId())) {
+                            if (wxMessage.getMsg().equals(MessageContentConstants.START_FEATURE + wxGroupFeature.getFeatureKeyword()) && robotWxId.equals(wxMessage.getRobotWxId())
+                                    || wxMessage.getMsg().equals(MessageContentConstants.END_FEATURE + wxGroupFeature.getFeatureKeyword()) && robotWxId.equals(wxMessage.getRobotWxId())) {
                                 try {
-                                    wxMessageService.updateFeature(MessageTypeConstants.GROUP_CHAT_TYPE, wxMessage, wxGroupFeature.getId(), wxGroupFeature.getFeatureName());
+                                    wxMessageService.updateFeature(wxMessage, wxGroupFeature.getId(), wxGroupFeature.getFeatureKeyword());
+                                    wxGroupFeatureList = wxMessageService.findGroupFeatureList(wxMessage);
                                 } catch (UnsupportedEncodingException e) {
                                     e.printStackTrace();
                                 }
@@ -118,14 +136,16 @@ public class WxMessageController {
                             }
                         });
                     }
+                    //群主输入功能可查看功能列表
+                    wxMessageService.sendFeatureList(wxMessage);
                     //艾特后自动回复
                     //TODO:部署db后用腾讯ai自动回复
-
                     wxMessageService.afterAtReply(wxMessage);
                     wxMessageService.LickingDogDiary(wxMessage);
                     //wxMessageService.gameLinkReply(wxMessage);
                     wxMessageService.cpdd(wxMessage);
                     wxMessageService.song(wxMessage);
+                    wxMessageService.removeAdvert(wxMessage);
                     break;
                 //暂无
                 case MessageTypeConstants.NO_USE_TYPE:
@@ -157,33 +177,33 @@ public class WxMessageController {
                     break;
                 //软件开始启动
                 case MessageTypeConstants.THE_SOFTWARE_STARTS_TYPE:
-                    log.info("------------软件开始启动---------------");
+                    log.info("------------theSoftwareStarts---------------");
                     break;
                 //新的账号登录完成
                 case MessageTypeConstants.NEW_ACCOUNT_LOGIN_COMPLETE_TYPE:
                     //可爱猫登录后第一步 刷新当前机器人的好友和群聊并修改DB
                     //当前机器人wxId
                     robotWxId = wxMessageService.refreshRobot(wxMessage);
-                    log.info("------------当前机器人{}---------------", robotWxId);
-                    log.info("------------开始刷新好友---------------");
+                    log.info("------------robotId={}---------------", robotWxId);
+                    log.info("------------refreshRobot start---------------");
                     wxMessageService.refreshFriend(wxMessage);
-                    log.info("------------结束刷新好友---------------");
-                    log.info("------------开始刷新群聊---------------");
+                    log.info("------------refreshRobot end---------------");
+                    log.info("------------refreshGroup start---------------");
                     wxMessageService.refreshGroup(wxMessage);
-                    log.info("------------结束刷新群聊---------------");
-                    log.info("------------开始刷新群聊列表---------------");
+                    log.info("------------refreshGroup end---------------");
+                    log.info("------------refreshGroupFriend start---------------");
                     wxMessageService.refreshGroupFriend(wxMessage);
-                    log.info("------------结束刷新群聊列表---------------");
-                    log.info("------------开始过滤微信消息------------");
+                    log.info("------------refreshGroupFriend end---------------");
+                    log.info("------------findFilterList start------------");
                     filterList = wxMessageService.findFilterList(robotWxId);
-                    log.info("------------结束过滤微信消息------------");
+                    log.info("------------findFilterList end------------");
                     //获取好友功能列表
-                    log.info("------------开始获取好友功能权限------------");
+                    log.info("------------findFriendFeatureList start------------");
                     wxFriendFeatureList = wxMessageService.findFriendFeatureList(wxMessage);
-                    log.info("------------结束获取好友功能权限------------");
-                    log.info("------------开始获取群聊功能权限------------");
+                    log.info("------------findFriendFeatureList end------------");
+                    log.info("------------findGroupFeatureList start------------");
                     wxGroupFeatureList = wxMessageService.findGroupFeatureList(wxMessage);
-                    log.info("------------结束获取群聊功能权限------------");
+                    log.info("------------findGroupFeatureList end------------");
                     break;
                 //账号下线
                 case MessageTypeConstants.ACCOUNT_LOGIN_OUT_TYPE:

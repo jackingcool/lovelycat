@@ -10,7 +10,7 @@
     </parent>
     <groupId>com.lovelycat</groupId>
     <artifactId>wx</artifactId>
-    <version>0.0.7-SNAPSHOT</version>
+    <version>0.0.9-SNAPSHOT</version>
     <packaging>jar</packaging>
     <name>wx</name>
     <description>lovelycat project for Spring Boot</description>
