@@ -7,6 +7,7 @@ import cn.xsshome.taip.nlp.TAipNlp;
 import com.alibaba.fastjson.JSON;
 import com.alibaba.fastjson.JSONArray;
 import com.alibaba.fastjson.JSONObject;
+import com.lovelycat.wx.annotation.FilterFeature;
 import com.lovelycat.wx.base.entity.WxMessage;
 import com.lovelycat.wx.base.service.WxBaseService;
 import com.lovelycat.wx.constants.MessageContentConstants;
@@ -63,6 +64,7 @@ public class ScheduledTasks {
 
     @Scheduled(cron = "0 0 0 * * ?")
     @Async
+    @FilterFeature
     public void netEaseCloud() {
         WxBaseService wxBaseService = (WxBaseService) ApplicationContextUtil.getBean("WxBaseService");
         StringBuffer sb = new StringBuffer();
@@ -104,12 +106,14 @@ public class ScheduledTasks {
 
     @Scheduled(cron = "0 0 6 * * ?")
     @Async
+    @FilterFeature
     public void GoodMorning() {
         regards(1, 100);
     }
 
     @Scheduled(cron = "0 1 6 * * ?")
     @Async
+    @FilterFeature
     public void weatherReply() throws Exception {
         JSONArray jsonArray = JSON.parseObject(new ClassPathResourceReader("json/SendWeather.json").getContent()).getJSONArray("data");
         TAipNlp tAipNlp = new TAipNlp(smartChatAppId, smartChatAppKey);
@@ -128,6 +132,7 @@ public class ScheduledTasks {
 
 
     @Scheduled(cron = "0 0 23 * * ?")
+    @FilterFeature
     public void GoodNight() {
         regards(3, 100);
     }

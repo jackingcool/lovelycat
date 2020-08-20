@@ -13,6 +13,6 @@ public class WxGroupFeatureDo extends BaseEntity {
     private String id;
     private String featureKeyword;
     private String groupId;
-    private boolean useFlag;
+    private Boolean useFlag;
 
 }

@@ -4,6 +4,7 @@ import com.lovelycat.wx.base.entity.WxMessage;
 import com.lovelycat.wx.db.entity.WxFriendFeature;
 import com.lovelycat.wx.db.entity.WxGroupFeature;
 
+import java.io.FileNotFoundException;
 import java.io.UnsupportedEncodingException;
 import java.util.List;
 
@@ -27,7 +28,7 @@ public interface WxMessageService {
      *
      * @param wxMessage 接收的消息内容
      */
-    void afterAtReply(WxMessage wxMessage);
+    void afterAtReply(WxMessage wxMessage) throws Exception;
 
     /**
      * 舔狗日记
@@ -74,14 +75,14 @@ public interface WxMessageService {
      *
      * @param wxMessage
      */
-    void addGroupMemberReply(WxMessage wxMessage) throws UnsupportedEncodingException;
+    void addGroupMemberReply(WxMessage wxMessage) throws UnsupportedEncodingException, FileNotFoundException;
 
     /**
      * 成员加紧少回复
      *
      * @param wxMessage
      */
-    void removeGroupMemberReply(WxMessage wxMessage) throws UnsupportedEncodingException;
+    void removeGroupMemberReply(WxMessage wxMessage) throws UnsupportedEncodingException, FileNotFoundException, InterruptedException;
 
 
     /**
@@ -89,14 +90,14 @@ public interface WxMessageService {
      *
      * @param wxMessage
      */
-    void refreshFriend(WxMessage wxMessage);
+    void refreshFriend(WxMessage wxMessage) throws UnsupportedEncodingException;
 
     /**
      * 刷新群聊列表 并修改db
      *
      * @param wxMessage
      */
-    void refreshGroup(WxMessage wxMessage);
+    void refreshGroup(WxMessage wxMessage) throws UnsupportedEncodingException;
 
     /**
      * 刷新当前机器人
@@ -130,11 +131,11 @@ public interface WxMessageService {
     /**
      * 修改功能权限
      *
-     * @param wxMessage 消息信息
-     * @param featureId 功能Id
-     * @param action    动作 开启or关闭
+     * @param wxMessage      消息信息
+     * @param featureId      功能Id
+     * @param featureKeyWord 关键字
      */
-    void updateFeature( WxMessage wxMessage, String featureId, String featureKeyWord) throws UnsupportedEncodingException;
+    void updateFeature(WxMessage wxMessage, String featureId, String featureKeyWord) throws UnsupportedEncodingException;
 
     /**
      * 查询好友功能列表

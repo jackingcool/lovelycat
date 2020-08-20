@@ -13,6 +13,6 @@ public class WxFriendFeatureDo extends BaseEntity {
     private String id;
     private String featureKeyword;
     private String wxId;
-    private boolean useFlag;
+    private Boolean useFlag;
 
 }

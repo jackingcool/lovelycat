@@ -10,7 +10,6 @@ import org.springframework.scheduling.annotation.EnableAsync;
  * @author mgg
  */
 @SpringBootApplication
-
 @MapperScan("com.lovelycat.wx.**.mapper")
 public class WxApplication {
 

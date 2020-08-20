@@ -7,6 +7,8 @@ import cn.hutool.core.util.RandomUtil;
 import cn.hutool.core.util.XmlUtil;
 import cn.hutool.http.HttpUtil;
 import cn.hutool.json.JSONUtil;
+import cn.hutool.log.Log;
+import cn.hutool.log.LogFactory;
 import cn.xsshome.taip.nlp.TAipNlp;
 import com.alibaba.fastjson.JSON;
 import com.alibaba.fastjson.JSONArray;
@@ -14,6 +16,7 @@ import com.alibaba.fastjson.JSONObject;
 import com.alibaba.fastjson.serializer.JSONObjectCodec;
 import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
 import com.baomidou.mybatisplus.core.conditions.update.UpdateWrapper;
+import com.lovelycat.wx.annotation.FilterFeature;
 import com.lovelycat.wx.base.entity.WxMessage;
 import com.lovelycat.wx.base.service.WxBaseService;
 import com.lovelycat.wx.constants.MessageContentConstants;
@@ -52,8 +55,8 @@ import java.util.*;
 @Service("WxRobotService")
 @Transactional
 public class WxMessageServiceImpl implements WxMessageService {
-    @Value("${wx.use.wxIds}")
-    private String wxIds;
+    private static final Log log = LogFactory.get();
+
     @Value("${wx.api.lickingDogDiary.url}")
     private String lickingDogDiaryUrl;
     @Value("${wx.api.weather.appId}")
@@ -74,16 +77,13 @@ public class WxMessageServiceImpl implements WxMessageService {
     private String musicListenUrl;
     @Value("${wx.robot.wxId}")
     private String robotWxId;
-    @Value("${wx.tencent.smart.chat.url}")
-    private String smartChatUrl;
     @Value("${wx.tencent.smart.chat.appId}")
     private String smartChatAppId;
     @Value("${wx.tencent.smart.chat.appKey}")
     private String smartChatAppKey;
     @Value("${wx.file.path}")
     private String filePath;
-    @Value("${wx.api.music.random.music.url}")
-    private String randomMusicUrl;
+
 
     @Autowired
     private WxBaseService wxBaseService;
@@ -130,25 +130,22 @@ public class WxMessageServiceImpl implements WxMessageService {
     }
 
     @Override
-    public void afterAtReply(WxMessage wxMessage) {
+    @FilterFeature
+    public void afterAtReply(WxMessage wxMessage) throws Exception {
         if (wxMessage.getMsg().indexOf(wxMessage.getRobotWxId()) != -1
                 && wxMessage.getMsg().indexOf(SymbolicConstants.AT) != -1
-                && filterFeature(wxMessage)
         ) {
             StringBuffer sb = new StringBuffer();
-            try {
-                String answer = connectWithTencentSmartChat(wxMessage);
-                if (StringUtils.isEmpty(answer)) {
-                    JSONArray jsonArray = JSON.parseObject(new ClassPathResourceReader("json/AfterAtReply.json").getContent()).getJSONArray("data");
-                    JSONObject jsonObject = (JSONObject) jsonArray.get(RandomUtil.randomInt(0, jsonArray.size()));
-                    sb.append(jsonObject.get("value"));
-                } else {
-                    sb.append(answer);
-                }
 
-            } catch (Exception e) {
-                e.printStackTrace();
+            String answer = connectWithTencentSmartChat(wxMessage);
+            if (StringUtils.isEmpty(answer)) {
+                JSONArray jsonArray = JSON.parseObject(new ClassPathResourceReader("json/AfterAtReply.json").getContent()).getJSONArray("data");
+                JSONObject jsonObject = (JSONObject) jsonArray.get(RandomUtil.randomInt(0, jsonArray.size()));
+                sb.append(jsonObject.get("value"));
+            } else {
+                sb.append(answer);
             }
+
 
             wxBaseService.sendGroupAtMsg(wxMessage.getRobotWxId(), wxMessage.getFromWxId(), wxMessage.getFinalFromWxId(), wxMessage.getFinalNickname(), sb.toString(), 1000);
         }
@@ -219,8 +216,9 @@ public class WxMessageServiceImpl implements WxMessageService {
     }
 
     @Override
+    @FilterFeature
     public void LickingDogDiary(WxMessage wxMessage) {
-        if (wxMessage.getMsg().indexOf(MessageContentConstants.LICKING_DOG_DIARY) != -1 && filterFeature(wxMessage)) {
+        if (wxMessage.getMsg().indexOf(MessageContentConstants.LICKING_DOG_DIARY) != -1) {
             String[] arr = HttpUtil.get(lickingDogDiaryUrl).split(" ");
             StringBuffer sb = new StringBuffer();
             sb.append("\\n");
@@ -238,7 +236,7 @@ public class WxMessageServiceImpl implements WxMessageService {
 
     @Override
     public void test(WxMessage wxMessage) throws UnsupportedEncodingException {
-        wxBaseService.sendTextMsg(robotWxId, "18886411694@chatroom", "1", 1);
+        iWxFriendFeatureFriendService.update(new UpdateWrapper<WxFriendFeatureFriend>().set("use_flag", false).eq("wx_id", "wxid_24vkfjgtd2kq12").eq("feature_id", "1288311054294220802"));
     }
 
     @Override
@@ -297,9 +295,10 @@ public class WxMessageServiceImpl implements WxMessageService {
     }
 
     @Override
+    @FilterFeature
     public void cpdd(WxMessage wxMessage) {
         StringBuffer sb = new StringBuffer();
-        if (wxMessage.getMsg().toLowerCase().indexOf(MessageContentConstants.CPDD.toLowerCase()) != -1 && filterFeature(wxMessage)) {
+        if (wxMessage.getMsg().toLowerCase().indexOf(MessageContentConstants.CPDD.toLowerCase()) != -1) {
             int i = RandomUtil.randomInt(1, 100);
             if (i % 2 != 0) {
                 sb.append(HttpUtil.get(loveWordsUrl)).append(" Cpdd");
@@ -313,8 +312,9 @@ public class WxMessageServiceImpl implements WxMessageService {
     }
 
     @Override
+    @FilterFeature
     public void song(WxMessage wxMessage) {
-        if (wxMessage.getMsg().startsWith(MessageContentConstants.SONG) && filterFeature(wxMessage)) {
+        if (wxMessage.getMsg().startsWith(MessageContentConstants.SONG)) {
             String name = wxMessage.getMsg();
             name = name.substring(name.indexOf(MessageContentConstants.SONG) + 2, name.length());
             JSONObject searchMusicJSONObject = JSONObject.parseObject(HttpUtil.get(musicSearchUrl + name, 1000));
@@ -346,7 +346,8 @@ public class WxMessageServiceImpl implements WxMessageService {
     }
 
     @Override
-    public void addGroupMemberReply(WxMessage wxMessage) throws UnsupportedEncodingException {
+    @FilterFeature
+    public void addGroupMemberReply(WxMessage wxMessage) throws UnsupportedEncodingException, FileNotFoundException {
 
         JSONObject jsonObject = JSONObject.parseObject(wxMessage.getMsg());
         JSONArray jsonArray = jsonObject.getJSONArray("guest");
@@ -367,11 +368,9 @@ public class WxMessageServiceImpl implements WxMessageService {
             String fileName = UUID.randomUUID().toString();
             File file = new File(filePath + fileName + ".jpg");
             FileOutputStream fos = null;
-            try {
-                fos = new FileOutputStream(file, true);
-            } catch (FileNotFoundException e) {
-                e.printStackTrace();
-            }
+
+            fos = new FileOutputStream(file, true);
+
             HttpUtil.download(fileUrl, fos, true);
             wxBaseService.sendImageMsg(robotWxId, jsonObject.getString("group_wxid"), file.getAbsolutePath(), 0);
             //数据库同步信息
@@ -403,7 +402,8 @@ public class WxMessageServiceImpl implements WxMessageService {
 
 
     @Override
-    public void removeGroupMemberReply(WxMessage wxMessage) throws UnsupportedEncodingException {
+    @FilterFeature
+    public void removeGroupMemberReply(WxMessage wxMessage) throws UnsupportedEncodingException, FileNotFoundException, InterruptedException {
         if (filterFeature(wxMessage)) {
             JSONObject jsonObject = JSONObject.parseObject(wxMessage.getMsg());
             StringBuffer sb = new StringBuffer();
@@ -415,35 +415,23 @@ public class WxMessageServiceImpl implements WxMessageService {
             String fileName = UUID.randomUUID().toString();
             File file = new File(filePath + fileName + ".jpg");
             FileOutputStream fos = null;
-            try {
-                fos = new FileOutputStream(file, true);
-            } catch (FileNotFoundException e) {
-                e.printStackTrace();
-            }
+            fos = new FileOutputStream(file, true);
             HttpUtil.download(fileUrl, fos, true);
             wxBaseService.sendImageMsg(robotWxId, jsonObject.getString("group_wxid"), file.getAbsolutePath(), 0);
             //数据库同步信息
             iWxGroupFriendService.remove(new QueryWrapper<WxGroupFriend>().eq("group_id", jsonObject.getString("group_wxid")).eq("wx_id", jsonObject.getString("member_wxid")));
             //删除图片
-            try {
-                Thread.sleep(5000);
-                FileUtil.del(file);
-            } catch (InterruptedException e) {
-                e.printStackTrace();
-            }
+            Thread.sleep(5000);
+            FileUtil.del(file);
+
         }
     }
 
     @Override
-    public void refreshFriend(WxMessage wxMessage) {
+    public void refreshFriend(WxMessage wxMessage) throws UnsupportedEncodingException {
         //wx下所有好友的集合
         JSONObject friendObject = null;
-
-        try {
-            friendObject = wxBaseService.getFriendList(wxMessage.getRobotWxId(), 1);
-        } catch (UnsupportedEncodingException e) {
-            e.printStackTrace();
-        }
+        friendObject = wxBaseService.getFriendList(wxMessage.getRobotWxId(), 1);
         //猫获取的好友集合
         JSONArray friendArray = friendObject.getJSONArray("data");
         //db批量修改的数据
@@ -469,7 +457,7 @@ public class WxMessageServiceImpl implements WxMessageService {
                     for (int i = 0; i < wxFriendList.size(); i++) {
                         if (wxFriendList.get(i).getWxId().equals(jsonWxId)
                                 && wxFriendList.get(i).getRobotId().equals(wxMessage.getRobotWxId())
-                                && wxFriendList.get(i).isUseFlag()) {
+                                && wxFriendList.get(i).getUseFlag()) {
                             isTrueWxIdFlag = false;
                             break;
                         }
@@ -517,14 +505,14 @@ public class WxMessageServiceImpl implements WxMessageService {
                     JSONObject friendValueObject = (JSONObject) friendArray.get(i);
                     if (wxFriend.getWxId().equals(friendValueObject.getString("wxid"))
                             && wxFriend.getRobotId().equals(wxMessage.getRobotWxId())
-                            && wxFriend.isUseFlag()) {
+                            && wxFriend.getUseFlag()) {
                         break;
                     }
 
                     if (i == friendArray.size() - 1) {
                         if (wxFriend.getWxId().equals(friendValueObject.getString("wxid"))
                                 && wxFriend.getRobotId().equals(wxMessage.getRobotWxId())
-                                && wxFriend.isUseFlag()) {
+                                && wxFriend.getUseFlag()) {
                             break;
                         } else {
                             iWxFriendService.removeById(wxFriend.getId());
@@ -540,15 +528,13 @@ public class WxMessageServiceImpl implements WxMessageService {
 
 
     @Override
-    public void refreshGroup(WxMessage wxMessage) {
+    public void refreshGroup(WxMessage wxMessage) throws UnsupportedEncodingException {
         //wx下所有群聊的集合
         JSONObject groupObject = null;
         //DB下当前robot所有群聊的集合
-        try {
-            groupObject = wxBaseService.getGroupList(wxMessage.getRobotWxId(), 1);
-        } catch (UnsupportedEncodingException e) {
-            e.printStackTrace();
-        }
+
+        groupObject = wxBaseService.getGroupList(wxMessage.getRobotWxId(), 1);
+
 
         //猫获取的群聊集合
         JSONArray groupArray = groupObject.getJSONArray("data");
@@ -633,7 +619,7 @@ public class WxMessageServiceImpl implements WxMessageService {
                             break;
                         } else {
                             iWxGroupService.removeById(wxGroup.getId());
-                            iWxGroupFeatureGroupService.remove(new QueryWrapper<WxGroupFeatureGroup>().eq("wx_id", wxGroup.getGroupId()).eq("robot_id", robotWxId));
+                            iWxGroupFeatureGroupService.remove(new QueryWrapper<WxGroupFeatureGroup>().eq("group_id", wxGroup.getGroupId()).eq("robot_id", robotWxId));
                         }
                     }
                 }
@@ -683,14 +669,18 @@ public class WxMessageServiceImpl implements WxMessageService {
         if (CollectionUtil.isNotEmpty(groupList)) {
             //遍历groupList 调用baseservice查询各个群的好友信息
             groupList.forEach(wxGroup -> {
+                JSONArray JSONFriendArray = null;
                 try {
-                    JSONArray JSONFriendArray = wxBaseService.getGroupMemberList(wxGroup.getRobotId(), wxGroup.getGroupId(), 1).getJSONArray("data");
-                    for (int i = 0; i < JSONFriendArray.size(); i++) {
-                        addGroupFriend(groupFriendList, wxGroup, JSONFriendArray, i);
-                    }
-
+                    JSONFriendArray = wxBaseService.getGroupMemberList(wxGroup.getRobotId(), wxGroup.getGroupId(), 1).getJSONArray("data");
                 } catch (UnsupportedEncodingException e) {
                     e.printStackTrace();
+                }
+                for (int i = 0; i < JSONFriendArray.size(); i++) {
+                    try {
+                        addGroupFriend(groupFriendList, wxGroup, JSONFriendArray, i);
+                    } catch (UnsupportedEncodingException e) {
+                        e.printStackTrace();
+                    }
                 }
             });
             iWxGroupFriendService.saveOrUpdateBatch(groupFriendList);
@@ -756,19 +746,26 @@ public class WxMessageServiceImpl implements WxMessageService {
         //私聊对方输入开启XX或者关闭XX后普通消息回复提示
         if (wxMessage.getType() == MessageTypeConstants.PRIVATE_CHAT_TYPE) {
             if (wxMessage.getMsg().contains(MessageContentConstants.START_FEATURE)) {
-                iWxFriendFeatureFriendService.update(new UpdateWrapper<WxFriendFeatureFriend>().set("use_flag", true).eq("wx_id", wxMessage.getFromWxId()).eq("feature_id", featureId));
-                sb.append("已开启").append(featureKeyWord).append("功能");
-            }
-            if (wxMessage.getMsg().contains(MessageContentConstants.END_FEATURE)) {
-                UpdateWrapper<WxFriendFeatureFriend> updateWrapper = new UpdateWrapper<>();
-                WxFriendFeatureFriend wxFriendFeatureFriend = new WxFriendFeatureFriend();
-                wxFriendFeatureFriend.setUseFlag(false);
-                updateWrapper.eq("robot_id", wxMessage.getRobotWxId()).eq("wx_id", wxMessage.getFromWxId()).eq("feature_id", featureId);
-                iWxFriendFeatureFriendService.update(wxFriendFeatureFriend, updateWrapper);
-                sb.append("已关闭").append(featureKeyWord).append("功能");
+                boolean flag = iWxFriendFeatureFriendService.update(new UpdateWrapper<WxFriendFeatureFriend>().set("use_flag", true).eq("robot_id", robotWxId).eq("wx_id", wxMessage.getFromWxId()).eq("feature_id", featureId));
+                if (flag) {
+                    sb.append("已开启").append(featureKeyWord).append("功能");
+                } else {
+                    sb.append("开启").append(featureKeyWord).append("功能失败");
+                }
+
             }
 
-            wxBaseService.sendTextMsg(wxMessage.getRobotWxId(), wxMessage.getFromWxId(), sb.toString(), 1);
+            if (wxMessage.getMsg().contains(MessageContentConstants.END_FEATURE)) {
+                boolean flag = iWxFriendFeatureFriendService.update(new UpdateWrapper<WxFriendFeatureFriend>().set("use_flag", false).eq("robot_id", robotWxId).eq("wx_id", wxMessage.getFromWxId()).eq("feature_id", featureId));
+                if (flag) {
+                    sb.append("已关闭").append(featureKeyWord).append("功能");
+                } else {
+                    sb.append("关闭").append(featureKeyWord).append("功能失败");
+                }
+
+            }
+
+            wxBaseService.sendTextMsg(wxMessage.getRobotWxId(), wxMessage.getFromWxId(), sb.toString(), 1000);
         }
         //群聊中只有群主输入开启XX或者修改XX后艾特回复群主
         if (wxMessage.getType() == MessageTypeConstants.GROUP_CHAT_TYPE) {
@@ -777,16 +774,26 @@ public class WxMessageServiceImpl implements WxMessageService {
             String lordNickName = jsonObject.getJSONArray("data").getJSONObject(0).getString("nickname");
             if (wxMessage.getMsg().contains(MessageContentConstants.START_FEATURE) && wxMessage.getFinalFromWxId().equals(lordWxId)) {
                 UpdateWrapper<WxGroupFeatureGroup> updateWrapper = new UpdateWrapper<WxGroupFeatureGroup>();
-                iWxGroupFeatureGroupService.update(updateWrapper.set("use_flag", true).eq("robot_id", wxMessage.getRobotWxId()).eq("group_id", wxMessage.getFromWxId()).eq("feature_id", featureId));
-                sb.append("已开启").append(featureKeyWord).append("功能");
+                boolean flag = iWxGroupFeatureGroupService.update(updateWrapper.set("use_flag", true).eq("robot_id", wxMessage.getRobotWxId()).eq("group_id", wxMessage.getFromWxId()).eq("feature_id", featureId));
+                if (flag) {
+                    sb.append("已开启").append(featureKeyWord).append("功能");
+                } else {
+                    sb.append("开启").append(featureKeyWord).append("功能失败");
+                }
+
             }
 
             if (wxMessage.getMsg().contains(MessageContentConstants.END_FEATURE) && wxMessage.getFinalFromWxId().equals(lordWxId)) {
                 UpdateWrapper<WxGroupFeatureGroup> updateWrapper = new UpdateWrapper<WxGroupFeatureGroup>();
-                iWxGroupFeatureGroupService.update(updateWrapper.set("use_flag", false).eq("robot_id", wxMessage.getRobotWxId()).eq("group_id", wxMessage.getFromWxId()).eq("feature_id", featureId));
-                sb.append("已关闭").append(featureKeyWord).append("功能");
+                boolean flag = iWxGroupFeatureGroupService.update(updateWrapper.set("use_flag", false).eq("robot_id", wxMessage.getRobotWxId()).eq("group_id", wxMessage.getFromWxId()).eq("feature_id", featureId));
+                if (flag) {
+                    sb.append("已关闭").append(featureKeyWord).append("功能");
+                } else {
+                    sb.append("关闭").append(featureKeyWord).append("功能失败");
+                }
+
             }
-            wxBaseService.sendGroupAtMsg(wxMessage.getRobotWxId(), wxMessage.getFromWxId(), lordWxId, lordNickName, sb.toString(), 1);
+            wxBaseService.sendGroupAtMsg(wxMessage.getRobotWxId(), wxMessage.getFromWxId(), lordWxId, lordNickName, sb.toString(), 1000);
         }
     }
 
@@ -840,7 +847,7 @@ public class WxMessageServiceImpl implements WxMessageService {
             if (CollectionUtil.isNotEmpty(friendFeatureList)) {
                 sb.append(wxMessage.getFromName()).append("的功能：").append("\\n");
                 friendFeatureList.forEach(wxFriendFeatureDo -> {
-                    sb.append(wxFriendFeatureDo.getFeatureKeyword()).append("                        ").append(wxFriendFeatureDo.isUseFlag() ? "开启" : "关闭").append("\\n");
+                    sb.append(wxFriendFeatureDo.getFeatureKeyword()).append("                        ").append(wxFriendFeatureDo.getUseFlag() ? "开启" : "关闭").append("\\n");
                 });
                 sb.append("--------------\\n");
                 sb.append("输入：开启XX 可开启个人单个功能，输入关闭XX 可关闭功能 ");
@@ -853,7 +860,7 @@ public class WxMessageServiceImpl implements WxMessageService {
             if (CollectionUtil.isNotEmpty(groupFeatureGroupList)) {
                 sb.append(wxMessage.getFromName()).append("的功能：").append("\\n");
                 groupFeatureGroupList.forEach(wxGroupFeatureDo -> {
-                    sb.append(wxGroupFeatureDo.getFeatureKeyword()).append("                        ").append(wxGroupFeatureDo.isUseFlag() ? "开启" : "关闭").append("\\n");
+                    sb.append(wxGroupFeatureDo.getFeatureKeyword()).append("                        ").append(wxGroupFeatureDo.getUseFlag() ? "开启" : "关闭").append("\\n");
                 });
                 sb.append("--------------\\n");
                 sb.append("输入：开启XX 可开启群聊单个功能，输入关闭XX 可关闭功能 ");
@@ -863,16 +870,15 @@ public class WxMessageServiceImpl implements WxMessageService {
     }
 
     @Override
+    @FilterFeature
     public void removeAdvert(WxMessage wxMessage) {
-        if (filterFeature(wxMessage)) {
-            String[] msgAttr = MessageContentConstants.REMOVE_ADVERT_KEYWORD_ATTR;
-            for (int i = 0, j = 0; i < msgAttr.length; i++) {
-                if (wxMessage.getMsg().contains(msgAttr[i])) {
-                    j++;
-                }
-                if (j > 2) {
-                    wxBaseService.removeGroupMember(robotWxId, wxMessage.getFromWxId(), wxMessage.getFinalFromWxId());
-                }
+        String[] msgAttr = MessageContentConstants.REMOVE_ADVERT_KEYWORD_ATTR;
+        for (int i = 0, j = 0; i < msgAttr.length; i++) {
+            if (wxMessage.getMsg().contains(msgAttr[i])) {
+                j++;
+            }
+            if (j > 2) {
+                wxBaseService.removeGroupMember(robotWxId, wxMessage.getFromWxId(), wxMessage.getFinalFromWxId());
             }
         }
     }

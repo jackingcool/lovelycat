@@ -45,6 +45,6 @@ public class WxFriend extends BaseEntity {
     /**
      * 是否使用
      */
-    private boolean useFlag;
+    private Boolean useFlag;
 
 }

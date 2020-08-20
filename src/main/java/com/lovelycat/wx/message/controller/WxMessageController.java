@@ -16,6 +16,7 @@ import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RestController;
 
 import javax.servlet.http.HttpServletRequest;
+import java.io.FileNotFoundException;
 import java.io.UnsupportedEncodingException;
 import java.net.URLDecoder;
 import java.util.ArrayList;
@@ -140,7 +141,11 @@ public class WxMessageController {
                     wxMessageService.sendFeatureList(wxMessage);
                     //艾特后自动回复
                     //TODO:部署db后用腾讯ai自动回复
-                    wxMessageService.afterAtReply(wxMessage);
+                    try {
+                        wxMessageService.afterAtReply(wxMessage);
+                    } catch (Exception e) {
+                        e.printStackTrace();
+                    }
                     wxMessageService.LickingDogDiary(wxMessage);
                     //wxMessageService.gameLinkReply(wxMessage);
                     wxMessageService.cpdd(wxMessage);
@@ -154,7 +159,7 @@ public class WxMessageController {
                 case MessageTypeConstants.ADD_GROUP_MEMBER_TYPE:
                     try {
                         wxMessageService.addGroupMemberReply(wxMessage);
-                    } catch (UnsupportedEncodingException e) {
+                    } catch (UnsupportedEncodingException | FileNotFoundException e) {
                         e.printStackTrace();
                     }
                     break;
@@ -163,6 +168,10 @@ public class WxMessageController {
                     try {
                         wxMessageService.removeGroupMemberReply(wxMessage);
                     } catch (UnsupportedEncodingException e) {
+                        e.printStackTrace();
+                    } catch (FileNotFoundException e) {
+                        e.printStackTrace();
+                    } catch (InterruptedException e) {
                         e.printStackTrace();
                     }
                     break;
@@ -186,10 +195,18 @@ public class WxMessageController {
                     robotWxId = wxMessageService.refreshRobot(wxMessage);
                     log.info("------------robotId={}---------------", robotWxId);
                     log.info("------------refreshRobot start---------------");
-                    wxMessageService.refreshFriend(wxMessage);
+                    try {
+                        wxMessageService.refreshFriend(wxMessage);
+                    } catch (UnsupportedEncodingException e) {
+                        e.printStackTrace();
+                    }
                     log.info("------------refreshRobot end---------------");
                     log.info("------------refreshGroup start---------------");
-                    wxMessageService.refreshGroup(wxMessage);
+                    try {
+                        wxMessageService.refreshGroup(wxMessage);
+                    } catch (UnsupportedEncodingException e) {
+                        e.printStackTrace();
+                    }
                     log.info("------------refreshGroup end---------------");
                     log.info("------------refreshGroupFriend start---------------");
                     wxMessageService.refreshGroupFriend(wxMessage);
