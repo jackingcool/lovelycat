@@ -2,4 +2,9 @@
 <!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
 <mapper namespace="com.lovelycat.wx.db.mapper.WxFriendMapper">
 
+    <select id="selectFriendWeatherReply" resultType="com.lovelycat.wx.db.entity.WxFriend">
+        SELECT a.wx_id,a.city from wx_friend a
+        INNER JOIN wx_friend_feature_friend b on a.wx_id = b.wx_id
+        WHERE a.use_flag = true and b.use_flag = true and b.feature_id='1288311054294220803'
+    </select>
 </mapper>

@@ -47,4 +47,9 @@ public class WxFriend extends BaseEntity {
      */
     private Boolean useFlag;
 
+    /**
+     * 城市
+     */
+    private String city;
+
 }

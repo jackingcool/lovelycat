@@ -16,6 +16,10 @@ import java.util.List;
  */
 public interface IWxFriendService extends IService<WxFriend> {
 
-
+    /**
+     * 查询发送定时和天气预报的好友
+     * @return
+     */
+    List<WxFriend> findFriendWeatherReply();
 }
 

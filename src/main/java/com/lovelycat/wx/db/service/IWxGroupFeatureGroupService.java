@@ -3,6 +3,8 @@ package com.lovelycat.wx.db.service;
 import com.lovelycat.wx.db.entity.WxGroupFeatureGroup;
 import com.baomidou.mybatisplus.extension.service.IService;
 
+import java.util.List;
+
 /**
  * <p>
  *  服务类
@@ -13,4 +15,5 @@ import com.baomidou.mybatisplus.extension.service.IService;
  */
 public interface IWxGroupFeatureGroupService extends IService<WxGroupFeatureGroup> {
 
+    List<WxGroupFeatureGroup> getRegardsList();
 }

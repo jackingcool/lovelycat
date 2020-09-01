@@ -119,6 +119,11 @@ public class WxMessageController {
 
                     //好友输入功能可查看功能列表
                     wxMessageService.sendFeatureList(wxMessage);
+                    try {
+                        wxMessageService.autoReplyByFriend(wxMessage);
+                    } catch (Exception e) {
+                        e.printStackTrace();
+                    }
                     break;
                 //群聊消息
                 case MessageTypeConstants.GROUP_CHAT_TYPE:
@@ -147,6 +152,7 @@ public class WxMessageController {
                         e.printStackTrace();
                     }
                     wxMessageService.LickingDogDiary(wxMessage);
+                    wxMessageService.securityDiary(wxMessage);
                     //wxMessageService.gameLinkReply(wxMessage);
                     wxMessageService.cpdd(wxMessage);
                     wxMessageService.song(wxMessage);

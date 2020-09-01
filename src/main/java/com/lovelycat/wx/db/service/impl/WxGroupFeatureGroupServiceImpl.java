@@ -4,7 +4,10 @@ import com.lovelycat.wx.db.entity.WxGroupFeatureGroup;
 import com.lovelycat.wx.db.mapper.WxGroupFeatureGroupMapper;
 import com.lovelycat.wx.db.service.IWxGroupFeatureGroupService;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
+
+import java.util.List;
 
 /**
  * <p>
@@ -14,7 +17,15 @@ import org.springframework.stereotype.Service;
  * @author mgg
  * @since 2020-07-31
  */
-@Service
+@Service("IWxGroupFeatureGroupService")
 public class WxGroupFeatureGroupServiceImpl extends ServiceImpl<WxGroupFeatureGroupMapper, WxGroupFeatureGroup> implements IWxGroupFeatureGroupService {
 
+    @Autowired
+    WxGroupFeatureGroupMapper wxGroupFeatureGroupMapper;
+
+
+    @Override
+    public List<WxGroupFeatureGroup> getRegardsList() {
+        return wxGroupFeatureGroupMapper.getRegardsList();
+    }
 }

@@ -17,6 +17,9 @@ public class MessageContentConstants {
     public static final String END_FEATURE = "关闭";
     public static final String WX_FEATURE = "功能";
     public static final String[] REMOVE_ADVERT_KEYWORD_ATTR = {"招聘", "兼职", "薪水", "提成", "加薪", "日赚"};
+    public static final String SECURITY_DIARY = "保安日记";
+    public static final String[] WEATHER_ARR = {"晴","阴","多云","多云转阴","阴转小雨","阴","小雨","中雨","大雨","暴雨"};
+    public static final String[] WEEK_ARR = {"SUN", "MON", "TUE", "WED", "THU", "FRI", "SAT"};
 
 
 }

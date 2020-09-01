@@ -191,4 +191,18 @@ public interface WxMessageService {
      * @param wxMessage
      */
     void removeAdvert(WxMessage wxMessage);
+
+    /**
+     * 保安日记
+     *
+     * @param wxMessage
+     */
+    void securityDiary(WxMessage wxMessage);
+
+    /**
+     * 好友自动回复
+     *
+     * @param wxMessage
+     */
+    void autoReplyByFriend(WxMessage wxMessage) throws Exception;
 }

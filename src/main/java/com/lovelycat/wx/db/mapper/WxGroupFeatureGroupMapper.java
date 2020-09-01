@@ -15,5 +15,10 @@ import java.util.List;
  */
 public interface WxGroupFeatureGroupMapper extends BaseMapper<WxGroupFeatureGroup> {
 
-
+    /**
+     *
+     * @return
+     *
+     */
+    List<WxGroupFeatureGroup> getRegardsList();
 }

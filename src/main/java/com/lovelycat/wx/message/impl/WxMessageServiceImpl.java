@@ -4,6 +4,7 @@ import cn.hutool.core.collection.CollectionUtil;
 import cn.hutool.core.io.FileUtil;
 import cn.hutool.core.net.URLDecoder;
 import cn.hutool.core.util.RandomUtil;
+import cn.hutool.core.util.StrUtil;
 import cn.hutool.core.util.XmlUtil;
 import cn.hutool.http.HttpUtil;
 import cn.hutool.json.JSONUtil;
@@ -44,6 +45,7 @@ import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
 import java.io.UnsupportedEncodingException;
 import java.net.URLEncoder;
+import java.text.SimpleDateFormat;
 import java.time.LocalDateTime;
 import java.util.*;
 
@@ -109,6 +111,8 @@ public class WxMessageServiceImpl implements WxMessageService {
     private WxFriendFeatureMapper wxFriendFeatureMapper;
     @Autowired
     private WxGroupFeatureMapper wxGroupFeatureMapper;
+    @Autowired
+    private IWxGroupFeatureFroupGroupMemberReplyService iWxGroupFeatureFroupGroupMemberReplyService;
 
 
     @Override
@@ -218,25 +222,23 @@ public class WxMessageServiceImpl implements WxMessageService {
     @Override
     @FilterFeature
     public void LickingDogDiary(WxMessage wxMessage) {
-        if (wxMessage.getMsg().indexOf(MessageContentConstants.LICKING_DOG_DIARY) != -1) {
-            String[] arr = HttpUtil.get(lickingDogDiaryUrl).split(" ");
+        if (wxMessage.getMsg().equals(MessageContentConstants.LICKING_DOG_DIARY)) {
+            String answer = HttpUtil.get(lickingDogDiaryUrl);
+            SimpleDateFormat sdf = new SimpleDateFormat("yyyy年MM月dd日");
+            String date = sdf.format(new Date());
+            String[] weekArr = MessageContentConstants.WEEK_ARR;
+            String[] weatherArr = MessageContentConstants.WEATHER_ARR;
+            Calendar calendar = Calendar.getInstance();
+            String week = weekArr[calendar.get(Calendar.DAY_OF_WEEK) - 1];
             StringBuffer sb = new StringBuffer();
-            sb.append("\\n");
-            for (int i = 0; i < arr.length; i++) {
-                if (i == 2) {
-                    arr[i] += "\\n";
-                }
-                sb.append(arr[i]);
-            }
-
-
+            sb.append(date).append("  ").append(week).append("  ").append(weatherArr[RandomUtil.randomInt(0, weatherArr.length)]).append("\\n").append(answer);
             wxBaseService.sendGroupAtMsg(wxMessage.getRobotWxId(), wxMessage.getFromWxId(), wxMessage.getFinalFromWxId(), wxMessage.getFinalNickname(), sb.toString(), 1000);
         }
     }
 
     @Override
     public void test(WxMessage wxMessage) throws UnsupportedEncodingException {
-        iWxFriendFeatureFriendService.update(new UpdateWrapper<WxFriendFeatureFriend>().set("use_flag", false).eq("wx_id", "wxid_24vkfjgtd2kq12").eq("feature_id", "1288311054294220802"));
+        wxBaseService.sendTextMsg(robotWxId, "21902177327@chatroom", "\uFE0F", 0);
     }
 
     @Override
@@ -348,16 +350,22 @@ public class WxMessageServiceImpl implements WxMessageService {
     @Override
     @FilterFeature
     public void addGroupMemberReply(WxMessage wxMessage) throws UnsupportedEncodingException, FileNotFoundException {
-
         JSONObject jsonObject = JSONObject.parseObject(wxMessage.getMsg());
         JSONArray jsonArray = jsonObject.getJSONArray("guest");
+        WxGroupFeatureFroupGroupMemberReply wxGroupFeatureFroupGroupMemberReply = iWxGroupFeatureFroupGroupMemberReplyService.getOne(new QueryWrapper<WxGroupFeatureFroupGroupMemberReply>().eq("type", 1).eq("group_id", wxMessage.getFromWxId()));
         for (int i = 0; i < jsonArray.size(); i++) {
             StringBuffer sb = new StringBuffer();
             JSONObject guestObject = jsonArray.getJSONObject(i);
-            sb.append("\\n网络一线牵，珍惜这段缘\\n");
-            sb.append("欢迎 ");
-            sb.append(guestObject.getString("nickname")).append(" ");
-            sb.append("大驾光临");
+            if (wxGroupFeatureFroupGroupMemberReply != null) {
+                sb.append("\\n网络一线牵，珍惜这段缘\\n");
+                sb.append(guestObject.getString("nickname")).append(" ");
+                sb.append(wxGroupFeatureFroupGroupMemberReply.getContent());
+            } else {
+                sb.append("\\n网络一线牵，珍惜这段缘\\n");
+                sb.append("欢迎 ");
+                sb.append(guestObject.getString("nickname")).append(" ");
+                sb.append("大驾光临");
+            }
             //TODO:不知是否存在robotWxId 暂用配置文件配置的wx.robot.wxId
             wxBaseService.sendGroupAtMsg(robotWxId, jsonObject.getString("group_wxid"), guestObject.getString("wxid"), guestObject.getString("nickname"), sb.toString(), 1000);
             //发送
@@ -881,6 +889,35 @@ public class WxMessageServiceImpl implements WxMessageService {
                 wxBaseService.removeGroupMember(robotWxId, wxMessage.getFromWxId(), wxMessage.getFinalFromWxId());
             }
         }
+    }
+
+    @Override
+    @FilterFeature
+    public void securityDiary(WxMessage wxMessage) {
+        if (wxMessage.getMsg().equals(MessageContentConstants.SECURITY_DIARY)) {
+            SimpleDateFormat sdf = new SimpleDateFormat("yyyy年MM月dd日");
+            String date = sdf.format(new Date());
+            String[] weekArr = MessageContentConstants.WEEK_ARR;
+            String[] weahterArr = MessageContentConstants.WEATHER_ARR;
+            Calendar calendar = Calendar.getInstance();
+            String week = weekArr[calendar.get(Calendar.DAY_OF_WEEK) - 1];
+            StringBuffer sb = new StringBuffer();
+            JSONArray jsonArray = JSON.parseObject(new ClassPathResourceReader("json/SecurityDiary.json").getContent()).getJSONArray("data");
+            sb.append(date).append("  ").append(week).append("  ").append(weahterArr[RandomUtil.randomInt(0, weahterArr.length)]).append("\\n").append(jsonArray.getString(RandomUtil.randomInt(0, jsonArray.size())));
+            wxBaseService.sendGroupAtMsg(wxMessage.getRobotWxId(), wxMessage.getFromWxId(), wxMessage.getFinalFromWxId(), wxMessage.getFinalNickname(), sb.toString(), 1000);
+        }
+    }
+
+    @Override
+    @FilterFeature
+    public void autoReplyByFriend(WxMessage wxMessage)  {
+        String answer = null;
+        try {
+            answer = connectWithTencentSmartChat(wxMessage);
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+        wxBaseService.sendTextMsg(wxMessage.getRobotWxId(), wxMessage.getFromWxId(), answer, 0);
     }
 
 

@@ -20,10 +20,15 @@ import java.util.List;
  * @author mgg
  * @since 2020-07-16
  */
-@Service
-
+@Service("IWxFriendService")
 public class WxFriendServiceImpl extends ServiceImpl<WxFriendMapper, WxFriend> implements IWxFriendService {
 
+    @Autowired
+    WxFriendMapper wxFriendMapper;
 
 
+    @Override
+    public List<WxFriend> findFriendWeatherReply() {
+        return wxFriendMapper.selectFriendWeatherReply();
+    }
 }
