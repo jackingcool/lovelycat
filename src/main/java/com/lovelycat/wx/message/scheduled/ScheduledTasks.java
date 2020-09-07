@@ -57,6 +57,7 @@ public class ScheduledTasks {
     @Value("${wx.api.chickenSoup.url}")
     private String chickenSoupUrl;
 
+
     @Scheduled(cron = "0 0 0 * * ?")
     @Async
     public void netEaseCloud() {
@@ -65,7 +66,7 @@ public class ScheduledTasks {
         StringBuffer sb = new StringBuffer();
         String path = filePath + "IMG_6013.JPG";
 
-        String text = HttpUtil.get(chickenSoupUrl);
+        String text = JSONObject.parseObject(HttpUtil.get(chickenSoupUrl)).getString("data");
         List<Map<String, String>> musicList = new ArrayList<>();
         sb.append("网抑云今日时间语录：" + text + " 今日热歌TOP5：");
         for (int i = 0; i < 5; i++) {

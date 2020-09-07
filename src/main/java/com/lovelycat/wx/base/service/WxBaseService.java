@@ -135,4 +135,13 @@ public interface WxBaseService {
      */
     void removeGroupMember(String robotWxId, String groupId, String memberWxId);
 
+    /**
+     * 调用腾讯智能ai
+     *
+     * @param wxMessage
+     * @return ai智能回复
+     * @throws Exception
+     */
+    String connectWithTencentSmartChat(WxMessage wxMessage) throws Exception;
+
 }

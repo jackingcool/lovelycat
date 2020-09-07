@@ -169,12 +169,7 @@ public interface WxMessageService {
      */
     String findIsUseRobot(WxMessage wxMessage);
 
-    /**
-     * 网抑云
-     *
-     * @param wxMessage
-     */
-    void netEaseCloud(WxMessage wxMessage);
+
 
     ;
 

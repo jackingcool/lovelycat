@@ -1,5 +1,6 @@
 package com.lovelycat.wx.db.service;
 
+import com.alibaba.fastjson.JSONObject;
 import com.lovelycat.wx.base.entity.WxMessage;
 import com.lovelycat.wx.db.entity.WxFriend;
 import com.baomidou.mybatisplus.extension.service.IService;
@@ -21,5 +22,13 @@ public interface IWxFriendService extends IService<WxFriend> {
      * @return
      */
     List<WxFriend> findFriendWeatherReply();
+
+    /**
+     * 新增好友信息
+     * @param friendValueObject
+     * @param jsonWxId
+     * @return
+     */
+    WxFriend addFriend(JSONObject friendValueObject, String jsonWxId);
 }
 

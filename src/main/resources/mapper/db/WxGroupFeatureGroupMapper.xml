@@ -5,6 +5,6 @@
     <select id="getRegardsList" resultType="com.lovelycat.wx.db.entity.WxGroupFeatureGroup">
         select * FROM wx_group_feature_group where use_flag = true and feature_id = '22883110542942208010'
         UNION
-        select * from wx_friend_feature_friend where use_flag = true and feature_id = '1288311054294220802'
+        select * FROM wx_friend_feature_friend where use_flag = true and feature_id = '1288311054294220802'
     </select>
 </mapper>

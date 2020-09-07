@@ -141,7 +141,7 @@ public class WxMessageServiceImpl implements WxMessageService {
         ) {
             StringBuffer sb = new StringBuffer();
 
-            String answer = connectWithTencentSmartChat(wxMessage);
+            String answer = wxBaseService.connectWithTencentSmartChat(wxMessage);
             if (StringUtils.isEmpty(answer)) {
                 JSONArray jsonArray = JSON.parseObject(new ClassPathResourceReader("json/AfterAtReply.json").getContent()).getJSONArray("data");
                 JSONObject jsonObject = (JSONObject) jsonArray.get(RandomUtil.randomInt(0, jsonArray.size()));
@@ -153,70 +153,6 @@ public class WxMessageServiceImpl implements WxMessageService {
 
             wxBaseService.sendGroupAtMsg(wxMessage.getRobotWxId(), wxMessage.getFromWxId(), wxMessage.getFinalFromWxId(), wxMessage.getFinalNickname(), sb.toString(), 1000);
         }
-    }
-
-    /**
-     * 功能权限判定
-     *
-     * @param wxMessage
-     * @return
-     */
-    private boolean filterFeature(WxMessage wxMessage) {
-        StackTraceElement[] stackTraceElements = Thread.currentThread().getStackTrace();
-        //获取方法名  feature_name 与 方法名相同
-        String methodName = stackTraceElements[2].getMethodName();
-
-        if (wxMessage.getType() == MessageTypeConstants.GROUP_CHAT_TYPE) {
-            //群聊
-            List<WxGroupFeatureGroup> wxGroupFeatureGroupList = iWxGroupFeatureGroupService.list(new QueryWrapper<WxGroupFeatureGroup>().eq("feature_id", iWxGroupFeatureService.getOne(new QueryWrapper<WxGroupFeature>().eq("feature_name", methodName)).getId()).eq("use_flag", true).eq("robot_id", robotWxId));
-            for (int i = 0; i < wxGroupFeatureGroupList.size(); i++) {
-                //数据库中群功能flag为true 并且群聊ID 和 message来源信息一致
-                if (wxGroupFeatureGroupList.get(i).getGroupId().equals(wxMessage.getFromWxId())) {
-                    return true;
-                }
-            }
-        }
-
-        if (wxMessage.getType() == MessageTypeConstants.PRIVATE_CHAT_TYPE) {
-            //好友
-            List<WxFriendFeatureFriend> wxFriendFeatureFriendList = iWxFriendFeatureFriendService.list(new QueryWrapper<WxFriendFeatureFriend>().eq("feature_id", iWxFriendFeatureService.getOne(new QueryWrapper<WxFriendFeature>().eq("feature_name", methodName)).getId()).eq("use_flag", true).eq("robot_id", robotWxId));
-            for (int i = 0; i < wxFriendFeatureFriendList.size(); i++) {
-                //数据库中群功能flag为true 并且群聊ID 和 message来源信息一致
-                if (wxFriendFeatureFriendList.get(i).getWxId().equals(wxMessage.getFromWxId())) {
-                    return true;
-                }
-            }
-        }
-
-        if (wxMessage.getType() == MessageTypeConstants.ADD_GROUP_MEMBER_TYPE || wxMessage.getType() == MessageTypeConstants.REMOVE_GROUP_MEMBER_TYPE) {
-            return true;
-        }
-
-        return false;
-    }
-
-    /**
-     * 调用腾讯智能ai
-     *
-     * @param wxMessage
-     * @return ai智能回复
-     * @throws Exception
-     */
-    private String connectWithTencentSmartChat(WxMessage wxMessage) throws Exception {
-        TAipNlp tAipNlp = new TAipNlp(smartChatAppId, smartChatAppKey);
-        //会话标识（应用内唯一）
-        String session = System.currentTimeMillis() / 1000 + "";
-        String question = wxMessage.getMsg();
-        if (wxMessage.getType() == MessageTypeConstants.PRIVATE_CHAT_TYPE) {
-            question = wxMessage.getMsg();
-        }
-
-        if (wxMessage.getType() == MessageTypeConstants.GROUP_CHAT_TYPE) {
-            question = question.replace(question.substring(question.indexOf("@at") - 1, question.indexOf("wxid=") + 25), "").trim();
-        }
-
-        //基础闲聊
-        return JSONObject.parseObject(tAipNlp.nlpTextchat(session, question)).getJSONObject("data").getString("answer");
     }
 
     @Override
@@ -412,27 +348,24 @@ public class WxMessageServiceImpl implements WxMessageService {
     @Override
     @FilterFeature
     public void removeGroupMemberReply(WxMessage wxMessage) throws UnsupportedEncodingException, FileNotFoundException, InterruptedException {
-        if (filterFeature(wxMessage)) {
-            JSONObject jsonObject = JSONObject.parseObject(wxMessage.getMsg());
-            StringBuffer sb = new StringBuffer();
-            sb.append("江湖有缘再见，").append(jsonObject.getString("member_nickname")).append("退出群聊");
-            wxBaseService.sendTextMsg(robotWxId, jsonObject.getString("group_wxid"), sb.toString(), 0);
-            JSONObject groupMemberJSON = wxBaseService.getGroupMember(robotWxId, jsonObject.getString("group_wxid"), jsonObject.getString("member_wxid")).getJSONObject("data");
-            //下载图片发送
-            String fileUrl = groupMemberJSON.getString("headimgurl");
-            String fileName = UUID.randomUUID().toString();
-            File file = new File(filePath + fileName + ".jpg");
-            FileOutputStream fos = null;
-            fos = new FileOutputStream(file, true);
-            HttpUtil.download(fileUrl, fos, true);
-            wxBaseService.sendImageMsg(robotWxId, jsonObject.getString("group_wxid"), file.getAbsolutePath(), 0);
-            //数据库同步信息
-            iWxGroupFriendService.remove(new QueryWrapper<WxGroupFriend>().eq("group_id", jsonObject.getString("group_wxid")).eq("wx_id", jsonObject.getString("member_wxid")));
-            //删除图片
-            Thread.sleep(5000);
-            FileUtil.del(file);
-
-        }
+        JSONObject jsonObject = JSONObject.parseObject(wxMessage.getMsg());
+        StringBuffer sb = new StringBuffer();
+        sb.append("江湖有缘再见，").append(jsonObject.getString("member_nickname")).append("退出群聊");
+        wxBaseService.sendTextMsg(robotWxId, jsonObject.getString("group_wxid"), sb.toString(), 0);
+        JSONObject groupMemberJSON = wxBaseService.getGroupMember(robotWxId, jsonObject.getString("group_wxid"), jsonObject.getString("member_wxid")).getJSONObject("data");
+        //下载图片发送
+        String fileUrl = groupMemberJSON.getString("headimgurl");
+        String fileName = UUID.randomUUID().toString();
+        File file = new File(filePath + fileName + ".jpg");
+        FileOutputStream fos = null;
+        fos = new FileOutputStream(file, true);
+        HttpUtil.download(fileUrl, fos, true);
+        wxBaseService.sendImageMsg(robotWxId, jsonObject.getString("group_wxid"), file.getAbsolutePath(), 0);
+        //数据库同步信息
+        iWxGroupFriendService.remove(new QueryWrapper<WxGroupFriend>().eq("group_id", jsonObject.getString("group_wxid")).eq("wx_id", jsonObject.getString("member_wxid")));
+        //删除图片
+        Thread.sleep(5000);
+        FileUtil.del(file);
     }
 
     @Override
@@ -475,7 +408,7 @@ public class WxMessageServiceImpl implements WxMessageService {
                 }
 
                 if (isTrueWxIdFlag) {
-                    dbFriendList.add(addFriend(friendValueObject, jsonWxId));
+                    dbFriendList.add(iWxFriendService.addFriend(friendValueObject, jsonWxId));
                 }
                 wxFriendFeatureList.forEach(wxFriendFeature -> {
                     boolean isWxFriendFeatureFriendFlag = true;
@@ -575,7 +508,7 @@ public class WxMessageServiceImpl implements WxMessageService {
                 }
 
                 if (isTrueGroupIdFlag) {
-                    dbGroupList.add(addGroup(groupValueObject, jsonWxId));
+                    dbGroupList.add(iWxGroupService.addGroup(groupValueObject, jsonWxId));
                 }
 
 
@@ -685,7 +618,7 @@ public class WxMessageServiceImpl implements WxMessageService {
                 }
                 for (int i = 0; i < JSONFriendArray.size(); i++) {
                     try {
-                        addGroupFriend(groupFriendList, wxGroup, JSONFriendArray, i);
+                        iWxGroupFriendService.addGroupFriend(groupFriendList, wxGroup, JSONFriendArray, i);
                     } catch (UnsupportedEncodingException e) {
                         e.printStackTrace();
                     }
@@ -830,24 +763,6 @@ public class WxMessageServiceImpl implements WxMessageService {
     }
 
     @Override
-    public void netEaseCloud(WxMessage wxMessage) {
-        String wxId = "18886411694@chatroom";
-        StringBuffer sb = new StringBuffer();
-        String path = filePath + "IMG_6013.JPG";
-        wxBaseService.sendImageMsg(robotWxId, wxId, path, 1);
-
-        sb.append("网抑云今日时间语录：" + HttpUtil.get(chickenSoupUrl) + " 今日热歌TOP5：");
-
-        wxBaseService.sendTextMsg(robotWxId, wxId, sb.toString(), 1);
-
-        for (int i = 0; i < 5; i++) {
-            JSONObject musicObject = JSONObject.parseObject(HttpUtil.get("https://api.uomg.com/api/rand.music?sort=热歌榜&format=json")).getJSONObject("data");
-            wxBaseService.sendLinkMsg(robotWxId, wxId, musicObject.getString("name") + " " + musicObject.getString("artistsname"), musicObject.getString("name"), musicObject.getString("url"), musicObject.getString("picurl"));
-        }
-
-    }
-
-    @Override
     public void sendFeatureList(WxMessage wxMessage) {
         StringBuffer sb = new StringBuffer();
         if (wxMessage.getType() == MessageTypeConstants.PRIVATE_CHAT_TYPE && wxMessage.getMsg().equals(MessageContentConstants.WX_FEATURE)) {
@@ -910,67 +825,14 @@ public class WxMessageServiceImpl implements WxMessageService {
 
     @Override
     @FilterFeature
-    public void autoReplyByFriend(WxMessage wxMessage)  {
+    public void autoReplyByFriend(WxMessage wxMessage) {
         String answer = null;
         try {
-            answer = connectWithTencentSmartChat(wxMessage);
+            answer = wxBaseService.connectWithTencentSmartChat(wxMessage);
         } catch (Exception e) {
             e.printStackTrace();
         }
         wxBaseService.sendTextMsg(wxMessage.getRobotWxId(), wxMessage.getFromWxId(), answer, 0);
-    }
-
-
-    /**
-     * 保存群聊好友相信信息
-     *
-     * @param groupFriendList 群聊好友详细信息集合
-     * @param wxGroup         群聊集合
-     * @param JSONFriendArray 群聊好友json
-     * @param i               群聊好友集合的搜索
-     * @throws UnsupportedEncodingException
-     */
-    private void addGroupFriend(List<WxGroupFriend> groupFriendList, WxGroup wxGroup, JSONArray JSONFriendArray, int i) throws UnsupportedEncodingException {
-        JSONObject JSONGroupMember = wxBaseService.getGroupMember(wxGroup.getRobotId(), wxGroup.getGroupId(), JSONFriendArray.getJSONObject(i).getString("wxid")).getJSONObject("data");
-        WxGroupFriend wxJSONGroupFriend = new WxGroupFriend();
-        wxJSONGroupFriend.setGroupId(wxGroup.getGroupId());
-        wxJSONGroupFriend.setNickname(JSONGroupMember.getString("nickname"));
-        wxJSONGroupFriend.setWxId(JSONGroupMember.getString("wxid"));
-        wxJSONGroupFriend.setCity(JSONGroupMember.getString("city"));
-        wxJSONGroupFriend.setSex(JSONGroupMember.getInteger("sex"));
-        wxJSONGroupFriend.setHeadimgurl(JSONGroupMember.getString("headimgurl"));
-        wxJSONGroupFriend.setCreateDate(LocalDateTime.now());
-        wxJSONGroupFriend.setUpdateDate(LocalDateTime.now());
-        wxJSONGroupFriend.setCreateBy("mgg");
-        wxJSONGroupFriend.setUpdateBy("mgg");
-        wxJSONGroupFriend.setRobotId(wxGroup.getRobotId());
-        groupFriendList.add(wxJSONGroupFriend);
-    }
-
-    private WxGroup addGroup(JSONObject groupValueObject, String jsonGroupId) {
-        WxGroup wxGroup = new WxGroup();
-        wxGroup.setGroupId(jsonGroupId);
-        wxGroup.setNickname(groupValueObject.getString("nickname"));
-        wxGroup.setRobotId(groupValueObject.getString("robot_wxid"));
-        wxGroup.setCreateDate(LocalDateTime.now());
-        wxGroup.setUpdateDate(LocalDateTime.now());
-        wxGroup.setCreateBy("mgg");
-        wxGroup.setUpdateBy("mgg");
-        wxGroup.setUseFlag(false);
-        return wxGroup;
-    }
-
-    private WxFriend addFriend(JSONObject friendValueObject, String jsonWxId) {
-        WxFriend wxFriend = new WxFriend();
-        wxFriend.setWxId(jsonWxId);
-        wxFriend.setNickname(friendValueObject.getString("nickname"));
-        wxFriend.setRobotId(friendValueObject.getString("robot_wxid"));
-        wxFriend.setCreateDate(LocalDateTime.now());
-        wxFriend.setUpdateDate(LocalDateTime.now());
-        wxFriend.setCreateBy("mgg");
-        wxFriend.setUpdateBy("mgg");
-        wxFriend.setUseFlag(false);
-        return wxFriend;
     }
 
 

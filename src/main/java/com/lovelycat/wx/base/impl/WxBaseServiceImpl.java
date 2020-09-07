@@ -1,11 +1,13 @@
 package com.lovelycat.wx.base.impl;
 
 import cn.hutool.http.HttpUtil;
+import cn.xsshome.taip.nlp.TAipNlp;
 import com.alibaba.fastjson.JSON;
 import com.alibaba.fastjson.JSONObject;
 import com.lovelycat.wx.base.entity.WxMessage;
 import com.lovelycat.wx.base.service.WxBaseService;
 import com.lovelycat.wx.base.entity.Results;
+import com.lovelycat.wx.constants.MessageTypeConstants;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 
@@ -149,4 +151,32 @@ public class WxBaseServiceImpl implements WxBaseService {
         requestMap.put("data", JSON.toJSONString(map));
         return HttpUtil.post(url, requestMap, timeout);
     }
+
+    /**
+     * 调用腾讯智能ai
+     *
+     * @param wxMessage
+     * @return ai智能回复
+     * @throws Exception
+     */
+
+
+    @Override
+    public String connectWithTencentSmartChat(WxMessage wxMessage) throws Exception {
+        TAipNlp tAipNlp = new TAipNlp("2154655508", "01cV1VHWRCju9i0p");
+        //会话标识（应用内唯一）
+        String session = System.currentTimeMillis() / 1000 + "";
+        String question = wxMessage.getMsg();
+        if (wxMessage.getType() == MessageTypeConstants.PRIVATE_CHAT_TYPE) {
+            question = wxMessage.getMsg();
+        }
+
+        if (wxMessage.getType() == MessageTypeConstants.GROUP_CHAT_TYPE) {
+            question = question.replace(question.substring(question.indexOf("@at") - 1, question.indexOf("wxid=") + 25), "").trim();
+        }
+
+        //基础闲聊
+        return JSONObject.parseObject(tAipNlp.nlpTextchat(session, question)).getJSONObject("data").getString("answer");
+    }
+
 }
